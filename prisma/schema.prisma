@@ -1,0 +1,492 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== Authentication ====================
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==================== User ====================
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  phone         String?
+
+  // Target exam info
+  targetExam      String?
+  targetDate      DateTime?
+  targetScore     Float?
+
+  // Membership
+  membership          String   @default("free") // free, basic, premium, vip
+  membershipExpiresAt DateTime?
+
+  // Points & Gamification
+  points       Int @default(0)
+  level        Int @default(1)
+  experience   Int @default(0)
+
+  // Streak tracking
+  totalStudyDays  Int      @default(0)
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastActiveAt    DateTime @default(now())
+  lastCheckinAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts        Account[]
+  sessions        Session[]
+  userAnswers     UserAnswer[]
+  userAnalytics   UserAnalytics[]
+  enrollments     Enrollment[]
+  mockExamAttempts MockExamAttempt[]
+  essaySubmissions EssaySubmission[]
+  bookmarks       Bookmark[]
+  courseReviews   CourseReview[]
+  payments        Payment[]
+  instructor      Instructor?
+}
+
+// ==================== Question Bank ====================
+model Question {
+  id        String   @id @default(cuid())
+
+  // Classification
+  examType  String   // gosi_9, gosi_7, police, etc.
+  subject   String   // korean, english, admin_law, etc.
+  chapter   String?
+  topic     String?
+  tags      String[]
+
+  // Question content
+  type          String  // multiple_choice, multiple_select, true_false, fill_blank, essay, case_study
+  content       String  @db.Text
+  options       Json?   // For multiple choice questions
+  correctAnswer Json    // Can be string or array of strings
+  explanation   String? @db.Text
+
+  // Difficulty & Statistics
+  difficulty    Int     @default(3) // 1-5
+  solveTime     Int     @default(60) // Expected solve time in seconds
+  totalAttempts Int     @default(0)
+  correctCount  Int     @default(0)
+
+  // Source
+  source    String?
+  year      Int?
+
+  // AI Generated
+  aiHints          String[]
+  relatedQuestions String[]
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userAnswers      UserAnswer[]
+  essaySubmissions EssaySubmission[]
+  bookmarks        Bookmark[]
+  mockExamSections MockExamSection[]
+
+  @@index([examType, subject])
+  @@index([difficulty])
+  @@index([type])
+}
+
+model UserAnswer {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+
+  answer       Json
+  isCorrect    Boolean
+  timeSpent    Int?     // seconds
+
+  // For essay questions
+  essayContent String?  @db.Text
+  aiScore      Float?
+  aiFeedback   String?  @db.Text
+
+  attemptNumber Int     @default(1)
+  createdAt     DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([questionId])
+}
+
+model Bookmark {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+  note       String?
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id])
+
+  @@unique([userId, questionId])
+}
+
+// ==================== Learning Analytics ====================
+model UserAnalytics {
+  id       String @id @default(cuid())
+  userId   String
+  examType String
+
+  totalSolved    Int @default(0)
+  totalCorrect   Int @default(0)
+  totalStudyTime Int @default(0) // minutes
+
+  subjectStats Json @default("[]") // Array of subject statistics
+  weakTopics   Json @default("[]") // Array of weak topics
+
+  predictedScore Float?
+  percentile     Float?
+
+  targetScore Float?
+  targetDate  DateTime?
+
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, examType])
+}
+
+// ==================== Courses ====================
+model Instructor {
+  id     String  @id @default(cuid())
+  userId String? @unique
+
+  name        String
+  title       String?
+  bio         String?  @db.Text
+  avatar      String?
+
+  specialties   String[]
+  totalStudents Int      @default(0)
+  totalCourses  Int      @default(0)
+  avgRating     Float    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User?    @relation(fields: [userId], references: [id])
+  courses Course[]
+}
+
+model Course {
+  id String @id @default(cuid())
+
+  title         String
+  subtitle      String?
+  description   String?  @db.Text
+  thumbnail     String?
+  previewVideoUrl String?
+
+  examType String
+  subject  String?
+  level    String  @default("intermediate") // beginner, intermediate, advanced
+
+  instructorId String
+
+  totalLessons  Int @default(0)
+  totalDuration Int @default(0) // minutes
+
+  originalPrice Int
+  salePrice     Int?
+  saleEndsAt    DateTime?
+
+  courseType String @default("recorded") // recorded, live, omo
+
+  enrollmentCount Int   @default(0)
+  rating          Float @default(0)
+  reviewCount     Int   @default(0)
+  completionRate  Float @default(0)
+
+  includes String[]
+
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  instructor   Instructor     @relation(fields: [instructorId], references: [id])
+  chapters     Chapter[]
+  enrollments  Enrollment[]
+  reviews      CourseReview[]
+
+  @@index([examType, isPublished])
+}
+
+model Chapter {
+  id       String @id @default(cuid())
+  courseId String
+  number   Int
+  title    String
+
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
+
+  @@unique([courseId, number])
+}
+
+model Lesson {
+  id        String @id @default(cuid())
+  chapterId String
+  number    Int
+  title     String
+
+  type      String  @default("video") // video, live, quiz, assignment
+  videoUrl  String?
+  duration  Int?    // minutes
+
+  scheduledAt DateTime?
+  liveRoomId  String?
+
+  questionIds String[]
+  materials   Json     @default("[]")
+
+  isFree Boolean @default(false)
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  lessonProgress LessonProgress[]
+
+  @@unique([chapterId, number])
+}
+
+model Enrollment {
+  id       String @id @default(cuid())
+  userId   String
+  courseId String
+
+  status   String   @default("active") // active, completed, expired, refunded
+  progress Float    @default(0) // 0-100
+
+  currentLessonId String?
+  lastAccessedAt  DateTime?
+
+  paidAmount    Int
+  paymentMethod String?
+  orderId       String?
+
+  startsAt  DateTime @default(now())
+  expiresAt DateTime?
+
+  isGuaranteed        Boolean @default(false)
+  guaranteeConditions Json?
+
+  createdAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course   @relation(fields: [courseId], references: [id])
+  lessonProgress LessonProgress[]
+
+  @@unique([userId, courseId])
+}
+
+model LessonProgress {
+  id           String  @id @default(cuid())
+  enrollmentId String
+  lessonId     String
+
+  completed   Boolean @default(false)
+  watchTime   Int     @default(0) // seconds
+  lastPosition Int    @default(0) // video position in seconds
+
+  completedAt DateTime?
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson     Lesson     @relation(fields: [lessonId], references: [id])
+
+  @@unique([enrollmentId, lessonId])
+}
+
+model CourseReview {
+  id       String @id @default(cuid())
+  userId   String
+  courseId String
+
+  rating  Int     // 1-5
+  content String? @db.Text
+
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId])
+}
+
+// ==================== Mock Exams ====================
+model MockExam {
+  id String @id @default(cuid())
+
+  title    String
+  examType String
+  year     Int?
+  round    Int?
+
+  totalQuestions Int
+  totalTime      Int  // minutes
+  totalScore     Int
+  passingScore   Int?
+
+  type       String @default("practice") // official, predicted, practice
+  difficulty String @default("medium")   // easy, medium, hard
+
+  isFree Boolean @default(false)
+  price  Int?
+
+  scheduledAt       DateTime?
+  resultsReleasedAt DateTime?
+
+  participantCount Int   @default(0)
+  avgScore         Float?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  sections MockExamSection[]
+  attempts MockExamAttempt[]
+}
+
+model MockExamSection {
+  id         String @id @default(cuid())
+  mockExamId String
+
+  subject   String
+  timeLimit Int?
+  score     Int
+
+  mockExam  MockExam  @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
+  questions Question[]
+}
+
+model MockExamAttempt {
+  id         String @id @default(cuid())
+  userId     String
+  mockExamId String
+
+  status    String   @default("in_progress") // in_progress, submitted, graded
+
+  startedAt   DateTime @default(now())
+  submittedAt DateTime?
+  timeSpent   Int?     // seconds
+
+  answers Json @default("[]")
+  result  Json?
+
+  createdAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mockExam MockExam @relation(fields: [mockExamId], references: [id])
+
+  @@index([userId, mockExamId])
+}
+
+// ==================== Essay Grading ====================
+model EssaySubmission {
+  id         String @id @default(cuid())
+  userId     String
+  questionId String
+
+  content     String @db.Text
+  wordCount   Int?
+  submittedAt DateTime @default(now())
+
+  aiGrading Json?
+
+  reGradeRequested Boolean @default(false)
+  humanGrading     Json?
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id])
+}
+
+// ==================== Payments ====================
+model Payment {
+  id     String @id @default(cuid())
+  userId String
+
+  type   String // membership, course, mock_exam
+  itemId String?
+
+  amount       Int
+  currency     String @default("KRW")
+  status       String @default("pending") // pending, completed, failed, refunded
+
+  provider     String // toss, stripe
+  paymentKey   String?
+  orderId      String  @unique
+
+  metadata Json?
+
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([orderId])
+}
+
+// ==================== System ====================
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+
+  updatedAt DateTime @updatedAt
+}
