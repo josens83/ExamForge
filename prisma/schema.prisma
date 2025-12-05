@@ -482,6 +482,215 @@ model Payment {
   @@index([orderId])
 }
 
+// ==================== Gamification ====================
+model League {
+  id          String @id @default(cuid())
+  name        String // 브론즈, 실버, 골드, 플래티넘, 다이아몬드, 마스터, 챔피언
+  tier        Int    // 1-7
+  minXP       Int
+  icon        String
+  color       String
+  weeklyReset Boolean @default(true)
+
+  members LeagueMember[]
+}
+
+model LeagueMember {
+  id          String   @id @default(cuid())
+  leagueId    String
+  userId      String
+  weeklyXP    Int      @default(0)
+  rank        Int?
+  joinedAt    DateTime @default(now())
+
+  league League @relation(fields: [leagueId], references: [id])
+
+  @@unique([leagueId, userId])
+  @@index([weeklyXP(sort: Desc)])
+}
+
+model Achievement {
+  id          String @id @default(cuid())
+  code        String @unique
+  name        String
+  description String
+  icon        String
+  category    String // streak, accuracy, quantity, speed, special
+  requirement Json   // { type: "streak", value: 30 }
+  xpReward    Int    @default(0)
+  badgeColor  String @default("bronze") // bronze, silver, gold, platinum
+  isSecret    Boolean @default(false)
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+  progress      Float    @default(100) // percentage
+
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  @@unique([userId, achievementId])
+}
+
+model DailyChallenge {
+  id          String   @id @default(cuid())
+  date        DateTime @db.Date
+  title       String
+  description String
+  type        String   // questions, time, streak, accuracy
+  requirement Json     // { count: 50, subject: "all" }
+  xpReward    Int
+  bonusReward Json?    // { type: "streak_freeze", count: 1 }
+
+  participants DailyChallengeParticipant[]
+
+  @@unique([date])
+}
+
+model DailyChallengeParticipant {
+  id               String   @id @default(cuid())
+  dailyChallengeId String
+  userId           String
+  progress         Float    @default(0)
+  completed        Boolean  @default(false)
+  completedAt      DateTime?
+
+  dailyChallenge DailyChallenge @relation(fields: [dailyChallengeId], references: [id])
+
+  @@unique([dailyChallengeId, userId])
+}
+
+model StudySession {
+  id           String   @id @default(cuid())
+  userId       String
+  startedAt    DateTime @default(now())
+  endedAt      DateTime?
+  duration     Int      @default(0) // seconds
+  questionsCompleted Int @default(0)
+  correctAnswers     Int @default(0)
+  xpEarned     Int      @default(0)
+  subject      String?
+  sessionType  String   @default("practice") // practice, mock_exam, review
+
+  @@index([userId, startedAt(sort: Desc)])
+}
+
+model StreakFreeze {
+  id        String   @id @default(cuid())
+  userId    String
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model UserInventory {
+  id        String @id @default(cuid())
+  userId    String @unique
+
+  streakFreezes   Int @default(0)
+  doubleXPHours   Int @default(0)
+  premiumDays     Int @default(0)
+
+  updatedAt DateTime @updatedAt
+}
+
+// ==================== Social Learning ====================
+model StudyGroup {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  examType    String
+  isPublic    Boolean  @default(true)
+  maxMembers  Int      @default(50)
+
+  creatorId   String
+  createdAt   DateTime @default(now())
+
+  members     StudyGroupMember[]
+  discussions Discussion[]
+}
+
+model StudyGroupMember {
+  id           String   @id @default(cuid())
+  studyGroupId String
+  userId       String
+  role         String   @default("member") // admin, moderator, member
+  joinedAt     DateTime @default(now())
+
+  studyGroup StudyGroup @relation(fields: [studyGroupId], references: [id], onDelete: Cascade)
+
+  @@unique([studyGroupId, userId])
+}
+
+model Discussion {
+  id           String   @id @default(cuid())
+  studyGroupId String?
+  questionId   String?
+  userId       String
+
+  title        String
+  content      String   @db.Text
+
+  upvotes      Int      @default(0)
+  downvotes    Int      @default(0)
+  viewCount    Int      @default(0)
+
+  isPinned     Boolean  @default(false)
+  isResolved   Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studyGroup   StudyGroup? @relation(fields: [studyGroupId], references: [id], onDelete: Cascade)
+  comments     Comment[]
+
+  @@index([studyGroupId, createdAt(sort: Desc)])
+}
+
+model Comment {
+  id           String   @id @default(cuid())
+  discussionId String
+  userId       String
+  parentId     String?
+
+  content      String   @db.Text
+  upvotes      Int      @default(0)
+
+  isAccepted   Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+
+  @@index([discussionId])
+}
+
+// ==================== Spaced Repetition ====================
+model SpacedRepetitionCard {
+  id         String   @id @default(cuid())
+  userId     String
+  questionId String
+
+  easeFactor Float    @default(2.5)
+  interval   Int      @default(1)  // days
+  repetitions Int     @default(0)
+
+  nextReviewAt DateTime
+  lastReviewAt DateTime?
+
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, questionId])
+  @@index([userId, nextReviewAt])
+}
+
 // ==================== System ====================
 model SystemConfig {
   id    String @id @default(cuid())
