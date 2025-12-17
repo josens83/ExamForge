@@ -61,9 +61,8 @@ const contactInfo = [
 const inquiryTypes = [
   { value: "general", label: "일반 문의" },
   { value: "technical", label: "기술 지원" },
-  { value: "payment", label: "결제/환불" },
+  { value: "billing", label: "결제/환불" },
   { value: "partnership", label: "제휴/협력" },
-  { value: "feedback", label: "서비스 피드백" },
   { value: "other", label: "기타" },
 ];
 
@@ -112,12 +111,31 @@ export default function ContactPage() {
     setIsLoading(true);
 
     try {
-      // API call would go here
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          category: formData.type,
+          message: formData.subject ? `[${formData.subject}]\n\n${formData.message}` : formData.message,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "문의 접수 중 오류가 발생했습니다");
+      }
+
       setIsSubmitted(true);
       toast.success("문의가 접수되었습니다");
     } catch (error) {
-      toast.error("문의 접수 중 오류가 발생했습니다");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("문의 접수 중 오류가 발생했습니다");
+      }
     } finally {
       setIsLoading(false);
     }

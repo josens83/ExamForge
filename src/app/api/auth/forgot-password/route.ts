@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,8 +30,12 @@ export async function POST(request: NextRequest) {
     const resetToken = crypto.randomBytes(32).toString("hex");
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
-    // Store the token (in a real app, you'd store this in the database)
-    // For now, we'll create a verification token entry
+    // Delete any existing tokens for this user
+    await prisma.verificationToken.deleteMany({
+      where: { identifier: email },
+    });
+
+    // Store the token
     await prisma.verificationToken.create({
       data: {
         identifier: email,
@@ -39,16 +44,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // In production, you would send an email here
-    // For now, we'll just log it
-    console.log(`Password reset link for ${email}: /reset-password?token=${resetToken}`);
+    // Send password reset email
+    const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`;
+    const emailTemplate = emailTemplates.passwordReset(resetUrl, user.name || undefined);
 
-    // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
-    // await sendPasswordResetEmail({
-    //   to: email,
-    //   name: user.name,
-    //   resetUrl: `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`,
-    // });
+    try {
+      await sendEmail({
+        to: email,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+      });
+    } catch (emailError) {
+      console.error("Failed to send password reset email:", emailError);
+      // Log the reset URL for development fallback
+      console.log(`Password reset link for ${email}: ${resetUrl}`);
+    }
 
     return NextResponse.json({
       success: true,
