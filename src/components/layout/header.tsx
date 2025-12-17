@@ -130,6 +130,12 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
+                    <Link href="/analytics" className="cursor-pointer">
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      학습 분석
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/gamification" className="cursor-pointer">
                       <Trophy className="mr-2 h-4 w-4" />
                       나의 학습 여정
