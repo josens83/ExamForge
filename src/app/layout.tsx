@@ -25,6 +25,15 @@ export const metadata: Metadata = {
     "문제은행",
   ],
   authors: [{ name: "ExamForge" }],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ExamForge",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     type: "website",
     locale: "ko_KR",

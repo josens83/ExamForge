@@ -1,0 +1,104 @@
+{
+  "name": "ExamForge - 합격을 위한 스마트 학습",
+  "short_name": "ExamForge",
+  "description": "AI 기반 시험 준비 플랫폼 - 문제은행, 모의고사, 강의, 스마트 복습",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ko",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "ExamForge 데스크톱 화면"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "ExamForge 모바일 화면"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "문제 풀기",
+      "short_name": "문제",
+      "description": "문제은행으로 바로 이동",
+      "url": "/questions",
+      "icons": [{ "src": "/icons/shortcut-questions.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "오늘의 복습",
+      "short_name": "복습",
+      "description": "스마트 복습 시작",
+      "url": "/review",
+      "icons": [{ "src": "/icons/shortcut-review.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "대시보드",
+      "short_name": "대시보드",
+      "description": "학습 현황 확인",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/shortcut-dashboard.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

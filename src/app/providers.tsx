@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "sonner";
+import { ServiceWorkerRegistration, InstallPrompt } from "@/components/pwa";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -23,6 +24,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         {children}
         <Toaster position="top-center" richColors />
+        <ServiceWorkerRegistration />
+        <InstallPrompt />
       </QueryClientProvider>
     </SessionProvider>
   );

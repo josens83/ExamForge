@@ -221,6 +221,95 @@ async function main() {
   });
   console.log("Created mock exam:", mockExam.title);
 
+  // Create leagues
+  const leagues = [
+    { id: "league-bronze", name: "브론즈", tier: 1, minXP: 0, icon: "🥉", color: "#CD7F32" },
+    { id: "league-silver", name: "실버", tier: 2, minXP: 500, icon: "🥈", color: "#C0C0C0" },
+    { id: "league-gold", name: "골드", tier: 3, minXP: 1500, icon: "🥇", color: "#FFD700" },
+    { id: "league-platinum", name: "플래티넘", tier: 4, minXP: 3000, icon: "💎", color: "#E5E4E2" },
+    { id: "league-diamond", name: "다이아몬드", tier: 5, minXP: 5000, icon: "💠", color: "#B9F2FF" },
+    { id: "league-master", name: "마스터", tier: 6, minXP: 8000, icon: "🏆", color: "#9400D3" },
+    { id: "league-champion", name: "챔피언", tier: 7, minXP: 12000, icon: "👑", color: "#FF4500" },
+  ];
+
+  for (const leagueData of leagues) {
+    await prisma.league.upsert({
+      where: { id: leagueData.id },
+      update: {},
+      create: leagueData,
+    });
+  }
+  console.log("Created leagues");
+
+  // Create achievements
+  const achievements = [
+    { code: "streak_7", name: "일주일 전사", description: "7일 연속 학습", icon: "🔥", category: "streak", requirement: { type: "streak", value: 7 }, xpReward: 100, badgeColor: "bronze" },
+    { code: "streak_30", name: "한달 마스터", description: "30일 연속 학습", icon: "⚡", category: "streak", requirement: { type: "streak", value: 30 }, xpReward: 500, badgeColor: "silver" },
+    { code: "streak_100", name: "백일장", description: "100일 연속 학습", icon: "💫", category: "streak", requirement: { type: "streak", value: 100 }, xpReward: 2000, badgeColor: "gold" },
+    { code: "solve_100", name: "백문백답", description: "100문제 풀기", icon: "📝", category: "quantity", requirement: { type: "total_solved", value: 100 }, xpReward: 100, badgeColor: "bronze" },
+    { code: "solve_1000", name: "천문일답", description: "1,000문제 풀기", icon: "📚", category: "quantity", requirement: { type: "total_solved", value: 1000 }, xpReward: 500, badgeColor: "silver" },
+    { code: "accuracy_80", name: "정확 사수", description: "정답률 80% 달성", icon: "🎯", category: "accuracy", requirement: { type: "accuracy", value: 80 }, xpReward: 200, badgeColor: "bronze" },
+    { code: "first_exam", name: "첫 도전", description: "첫 모의고사 응시", icon: "🎪", category: "special", requirement: { type: "mock_exam", value: 1 }, xpReward: 100, badgeColor: "bronze" },
+    { code: "early_bird", name: "얼리버드", description: "오전 6시 이전 학습", icon: "🌅", category: "special", requirement: { type: "early_study", value: 6 }, xpReward: 50, badgeColor: "bronze" },
+  ];
+
+  for (const achievementData of achievements) {
+    await prisma.achievement.upsert({
+      where: { code: achievementData.code },
+      update: {},
+      create: achievementData,
+    });
+  }
+  console.log("Created achievements");
+
+  // Create daily challenge
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  await prisma.dailyChallenge.upsert({
+    where: { date: today },
+    update: {},
+    create: {
+      date: today,
+      title: "50문제 챌린지",
+      description: "오늘 50문제를 풀어보세요",
+      type: "questions",
+      requirement: { count: 50, subject: "all" },
+      xpReward: 200,
+      bonusReward: { type: "streak_freeze", count: 1 },
+    },
+  });
+  console.log("Created daily challenge");
+
+  // Create study group
+  const studyGroup = await prisma.studyGroup.upsert({
+    where: { id: "study-group-1" },
+    update: {},
+    create: {
+      id: "study-group-1",
+      name: "9급 공무원 합격반",
+      description: "함께 공부하고 합격을 목표로 하는 스터디 그룹입니다. 매일 인증과 질문을 공유해요!",
+      examType: "gosi_9",
+      isPublic: true,
+      maxMembers: 50,
+      creatorId: demoUser.id,
+    },
+  });
+  console.log("Created study group:", studyGroup.name);
+
+  // Create user inventory
+  await prisma.userInventory.upsert({
+    where: { userId: demoUser.id },
+    update: {},
+    create: {
+      userId: demoUser.id,
+      streakFreezes: 2,
+      doubleXPHours: 5,
+      premiumDays: 0,
+    },
+  });
+  console.log("Created user inventory");
+
   console.log("Seeding completed!");
 }
 

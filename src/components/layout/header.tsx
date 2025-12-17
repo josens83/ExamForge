@@ -14,6 +14,11 @@ import {
   Menu,
   Flame,
   Crown,
+  Trophy,
+  Users,
+  Brain,
+  RefreshCw,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +38,8 @@ const navigation = [
   { name: "문제은행", href: "/questions", icon: FileText },
   { name: "강의", href: "/courses", icon: BookOpen },
   { name: "모의고사", href: "/mock-exams", icon: GraduationCap },
-  { name: "분석", href: "/analytics", icon: BarChart3 },
+  { name: "복습", href: "/review", icon: RefreshCw },
+  { name: "커뮤니티", href: "/community", icon: Users },
 ];
 
 export function Header() {
@@ -121,6 +127,12 @@ export function Header() {
                     <Link href="/dashboard" className="cursor-pointer">
                       <BarChart3 className="mr-2 h-4 w-4" />
                       대시보드
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/gamification" className="cursor-pointer">
+                      <Trophy className="mr-2 h-4 w-4" />
+                      나의 학습 여정
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
